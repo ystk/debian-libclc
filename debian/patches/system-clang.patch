@@ -1,0 +1,22 @@
+Description: use system clang compiler
+Author: Julian Wollrath <jwollrath@web.de>
+Date: Tue, 7 Jan 2014 16:32:47 +0100
+
+--- a/configure.py
++++ b/configure.py
+@@ -73,13 +73,13 @@ llvm_core_libs = llvm_config(['--libs', 'core', 'bitreader', 'bitwriter']) + ' '
+                  llvm_config(['--ldflags'])
+ llvm_cxxflags = llvm_config(['--cxxflags']) + ' -fno-exceptions -fno-rtti'
+ 
+-llvm_clang = os.path.join(llvm_bindir, 'clang')
++llvm_clang = 'clang'
+ llvm_link = os.path.join(llvm_bindir, 'llvm-link')
+ llvm_opt = os.path.join(llvm_bindir, 'opt')
+ 
+ cxx_compiler = options.with_cxx_compiler
+ if not cxx_compiler:
+-  cxx_compiler = os.path.join(llvm_bindir, 'clang++')
++  cxx_compiler = 'clang++'
+ 
+ available_targets = {
+   'r600--' : { 'devices' :

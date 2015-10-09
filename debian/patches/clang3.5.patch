@@ -1,0 +1,55 @@
+description: support clang 3.5 as the default
+author: Michael Gilbert <mgilbert@debian.org>
+origin: https://www.libreoffice.org/bugzilla/show_bug.cgi?id=80243
+
+--- a/utils/prepare-builtins.cpp
++++ b/utils/prepare-builtins.cpp
+@@ -1,4 +1,3 @@
+-#include "llvm/ADT/OwningPtr.h"
+ #include "llvm/Bitcode/ReaderWriter.h"
+ #include "llvm/IR/Function.h"
+ #include "llvm/IR/GlobalVariable.h"
+@@ -8,7 +7,7 @@
+ #include "llvm/Support/ManagedStatic.h"
+ #include "llvm/Support/MemoryBuffer.h"
+ #include "llvm/Support/raw_ostream.h"
+-#include "llvm/Support/system_error.h"
++#include "llvm/Support/FileSystem.h"
+ #include "llvm/Support/ToolOutputFile.h"
+ #include "llvm/Config/config.h"
+ 
+@@ -31,11 +30,17 @@ int main(int argc, char **argv) {
+   std::auto_ptr<Module> M;
+ 
+   {
+-    OwningPtr<MemoryBuffer> BufferPtr;
+-    if (error_code ec = MemoryBuffer::getFileOrSTDIN(InputFilename, BufferPtr))
++    ErrorOr<std::unique_ptr<MemoryBuffer>> BufferOrErr =
++      MemoryBuffer::getFile(InputFilename);
++    std::unique_ptr<MemoryBuffer> &BufferPtr = BufferOrErr.get();
++    if (std::error_code  ec = BufferOrErr.getError())
+       ErrorMessage = ec.message();
+-    else
+-      M.reset(ParseBitcodeFile(BufferPtr.get(), Context, &ErrorMessage));
++    else {
++      ErrorOr<Module *> ModuleOrErr = parseBitcodeFile(BufferPtr.get(), Context);
++      if (std::error_code ec = ModuleOrErr.getError())
++        ErrorMessage = ec.message();
++      M.reset(ModuleOrErr.get());
++    }
+   }
+ 
+   if (M.get() == 0) {
+@@ -65,10 +70,10 @@ int main(int argc, char **argv) {
+   }
+ 
+   std::string ErrorInfo;
+-  OwningPtr<tool_output_file> Out
++  std::unique_ptr<tool_output_file> Out
+   (new tool_output_file(OutputFilename.c_str(), ErrorInfo,
+ #if LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR > 3)
+-                        sys::fs::F_Binary));
++                        sys::fs::F_None));
+ #else
+                         raw_fd_ostream::F_Binary));
+ #endif
